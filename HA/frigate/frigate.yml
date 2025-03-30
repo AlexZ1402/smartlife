@@ -1,0 +1,183 @@
+mqtt:
+  enabled: true
+  host: 192.168.1.XXX
+  user: USER
+  password: PASSWORD
+  topic_prefix: frigate
+  client_id: frigate
+
+detectors:
+  coral:
+    type: edgetpu
+    device: usb
+
+birdseye:
+  enabled: false
+  #restream: True
+  #mode: objects
+  mode: continuous
+  layout:
+    scaling_factor: 1.0
+
+objects:
+  track:
+    - person
+    - dog
+    - cat
+  #- car
+  filters:
+    person:
+      min_score: 0.75
+    dog:
+      min_score: 0.65
+    cat:
+      min_score: 0.65
+    #car:
+      #min_score: 0.7
+
+record:
+  enabled: true
+  alerts:
+    retain: {}
+    pre_capture: 10
+    post_capture: 15
+  detections:
+    retain: {}
+    pre_capture: 10
+    post_capture: 15
+ffmpeg:
+  hwaccel_args: preset-vaapi
+  output_args:
+    record: preset-record-generic-audio-copy
+
+go2rtc:
+  streams:
+    CAM_01:
+      - rtsp://USER:PASSWORD@192.168.1.XX1:554/Preview_01_main
+      - ffmpeg:rtsp_cam#audio=opus
+    CAM_01_sub:
+      - rtsp://USER:PASSWORD@192.168.1.XX1:554/Preview_01_sub
+      - ffmpeg:rtsp_cam#audio=opus
+    CAM_02:
+      - rtsp://USER:PASSWORD@192.168.1.XX2:554/Preview_01_main
+      - ffmpeg:rtsp_cam#audio=opus
+    CAM_02_sub:
+      - rtsp://USER:PASSWORD@192.168.1.XX2:554/h264Preview_01_sub
+      - ffmpeg:rtsp_cam#audio=opus
+cameras:
+  CAM_01:
+    ffmpeg:
+      input_args: preset-rtmp-generic
+      inputs:
+        - path: rtsp://127.0.0.1:8554/CAM_01?video=copy&audio=aac
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+        - path: rtsp://127.0.0.1:8554/CAM_01_sub?video=copy&audio=aac
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 480
+      fps: 15
+    snapshots:
+      enabled: true
+      timestamp: false
+      bounding_box: true
+      retain:
+        default: 2 #days
+    record:
+      enabled: true
+      retain:
+        days: 2
+      alerts:
+        retain:
+          days: 5
+      detections:
+        retain:
+          days: 5
+    motion:
+      threshold: 25
+      contour_area: 8
+      improve_contrast: true
+  CAM_02:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/CAM_02?video=copy&audio=aac
+          input_args: preset-rtsp-restream
+          roles:
+            - record
+        - path: rtsp://127.0.0.1:8554/CAM_02_sub?video=copy&audio=aac
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+    detect:
+      width: 640
+      height: 480
+      fps: 15
+    snapshots:
+      enabled: true
+      timestamp: false
+      bounding_box: true
+      retain:
+        default: 2 #days
+    record:
+      enabled: true
+      retain:
+        days: 2
+      alerts:
+        retain:
+          days: 5
+      detections:
+        retain:
+          days: 5
+    zones:
+      garten01:
+        coordinates: 
+          0.002,0.176,0.214,0.117,0.217,0.152,0.236,0.176,0.247,0.159,0.245,0.109,0.268,0.035,0.448,0.009,0.589,0.027,0.598,0.002,0,0
+        loitering_time: 0
+        inertia: 3
+ui:
+  # Optional: Set the default live mode for cameras in the UI (default: mse)
+  timezone: Europe/Berlin
+  # Optional: Use an experimental recordings / camera view UI (default: false)
+  #use_experimental: false
+  # Optional: Set the time format used.
+  # Options are browser, 12hour, or 24hour (default: browser)
+  time_format: 24hour
+  # Optional: Set the date style for a specified length.
+  # Options are: full, long, medium, short
+  # Examples:
+  #    short: 2/11/23
+  #    medium: Feb 11, 2023
+  #    full: Saturday, February 11, 2023
+  # (default: short).
+  date_style: full
+  # Optional: Set the time style for a specified length.
+  # Options are: full, long, medium, short
+  # Examples:
+  #    short: 8:14 PM
+  #    medium: 8:15:22 PM
+  #    full: 8:15:22 PM Mountain Standard Time
+  # (default: medium).
+  time_style: medium
+  # Optional: Ability to manually override the date / time styling to use strftime format
+  # https://www.gnu.org/software/libc/manual/html_node/Formatting-Calendar-Time.html
+  # possible values are shown above (default: not set)
+  strftime_fmt: '%d/%m/%Y %H:%M'
+
+version: 0.15-1
+camera_groups:
+  vorne:
+    order: 1
+    icon: LuDoorOpen
+    cameras: CAM_01
+  Garten:
+    order: 2
+    icon: LuTreeDeciduous
+    cameras: CAM_02
+semantic_search:
+  enabled: false
+  reindex: false
+  model_size: small
